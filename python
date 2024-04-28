@@ -1,0 +1,46 @@
+import asyncio
+import logging
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters.command import Command
+
+# Включаем логирование, чтобы не пропустить важные сообщения
+logging.basicConfig(level=logging.INFO)
+# Объект бота
+bot = Bot(token="7020085710:AAFT7vHXhb0NzAXTKMDyxksVqu2ZmFudDKo")
+# Диспетчер
+dp = Dispatcher()
+
+# Хэндлер на команду /start
+@dp.message(Command("start"))
+async def cmd_start(message: types.Message):
+    await message.answer("Привет. Hi. Сәлеметсіз бе. Cześć. Как тебе? Класно? "
+                         "/nМожет анекдоты или же новости Новосибирска или же может... ")
+    await message.answer("/nТы вступишь в ряды теней?"
+                         "/nХочешь посмотреть фильмы или мультфильм, может зайти на ютуб-канал по прахождению разных игр")
+    await message.answer("/n\t/анекдоты"
+                         "/n\t/Новости_НСК")
+
+
+@dp.message(Command("анекдоты"))
+async def cmd_smex(message: types.Message):
+    await message.answer("Маленький сын спрашивает отца: "
+                         "— папа, а почему ты повесил конфеты на ёлку так высоко?"
+                         "— Для того чтобы ты не достал их до Нового Года!"
+                         "— Так мне что, теперь дождик жрать?!"
+                         "посвященный культуре и истории проклятий")
+
+
+@dp.message(Command("Новости_НСК"))
+async def cmd_nsk(message: types.Message):
+    await message.answer("Https://t.me/nsknewsinfo")
+    
+    
+    
+# Запуск процесса поллинга новых апдейтов
+async def main():
+    await dp.start_polling(bot)
+    
+    
+    
+if __name__ == "__main__":
+    asyncio.run(main())
