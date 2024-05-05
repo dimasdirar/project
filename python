@@ -1,7 +1,10 @@
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, Message
+from aiogram import Bot, Dispatcher, types, F, Router
+from aiogram.filters.command import Command
+from aiogram.filters import Command
 import asyncio
 import logging
-from aiogram import Bot, Dispatcher, types
-from aiogram.filters.command import Command
+
 
 # Включаем логирование, чтобы не пропустить важные сообщения
 logging.basicConfig(level=logging.INFO)
@@ -9,19 +12,43 @@ logging.basicConfig(level=logging.INFO)
 bot = Bot(token="7020085710:AAFT7vHXhb0NzAXTKMDyxksVqu2ZmFudDKo")
 # Диспетчер
 dp = Dispatcher()
+router = Router()
+
+
 
 # Хэндлер на команду /start
+# @dp.message(Command("start"))
+# async def cmd_start(message: types.Message):
+#     await message.answer("Привет. Hi. Сәлеметсіз бе. Cześć. Как тебе? Класно? "
+#                          "\n\tМожет анекдоты или же новости Новосибирска или же может... ")
+#     await message.answer("\n\tХочешь посмотреть фильмы или мультфильм, может зайти на ютуб-канал по прахождению разных игр")
+#     await message.answer("\n\t/joke"
+#                          "\n\t/news")
+
+
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     await message.answer("Привет. Hi. Сәлеметсіз бе. Cześć. Как тебе? Класно? "
-                         "/nМожет анекдоты или же новости Новосибирска или же может... ")
-    await message.answer("/nТы вступишь в ряды теней?"
-                         "/nХочешь посмотреть фильмы или мультфильм, может зайти на ютуб-канал по прахождению разных игр")
-    await message.answer("/n\t/анекдоты"
-                         "/n\t/Новости_НСК")
+                         "\n\tМожет анекдоты или же новости Новосибирска или же может... ")
+    await message.answer("\n\tХочешь посмотреть фильмы или мультфильм, может зайти на ютуб-канал по прахождению разных игр")
+    await message.answer("\n\t/joke"
+                         "\n\t/news")
+    kb = [
+        [
+            types.KeyboardButton(text="/joke"),
+            types.KeyboardButton(text="/news"),
+            types.KeyboardButton(text="/smotre")
+        ],
+    ]
+    keyboard = types.ReplyKeyboardMarkup(
+        keyboard=kb,
+        resize_keyboard=True,
+        input_field_placeholder="Выберите способ подачи"
+        )
+    await message.answer("Привет. Hi. Сәлеметсіз бе. Cześć. Как тебе? Класно?\nМожет анекдоты или же новости Новосибирска или же может...\nХочешь посмотреть фильмы или мультфильм, может зайти на ютуб-канал по прахождению разных игр", reply_markup=keyboard)
 
 
-@dp.message(Command("анекдоты"))
+@dp.message(Command("joke"))
 async def cmd_smex(message: types.Message):
     await message.answer("Маленький сын спрашивает отца: "
                          "— папа, а почему ты повесил конфеты на ёлку так высоко?"
@@ -30,13 +57,18 @@ async def cmd_smex(message: types.Message):
                          "посвященный культуре и истории проклятий")
 
 
-@dp.message(Command("Новости_НСК"))
+@dp.message(Command("news"))
 async def cmd_nsk(message: types.Message):
     await message.answer("Https://t.me/nsknewsinfo")
     
     
+@dp.message(Command("smotre"))
+async def cmd_films(message: types.Message):
+    await message.answer("https://www.afisha.ru/movie/")
     
-# Запуск процесса поллинга новых апдейтов
+    
+    
+# Запуск процесса поллинга новых апдейтов.https://www.youtube.com/watch?v=y25k0SImB8Y
 async def main():
     await dp.start_polling(bot)
     
