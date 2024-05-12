@@ -16,28 +16,15 @@ router = Router()
 
 
 
-# Хэндлер на команду /start
-# @dp.message(Command("start"))
-# async def cmd_start(message: types.Message):
-#     await message.answer("Привет. Hi. Сәлеметсіз бе. Cześć. Как тебе? Класно? "
-#                          "\n\tМожет анекдоты или же новости Новосибирска или же может... ")
-#     await message.answer("\n\tХочешь посмотреть фильмы или мультфильм, может зайти на ютуб-канал по прахождению разных игр")
-#     await message.answer("\n\t/joke"
-#                          "\n\t/news")
-
-
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
-    await message.answer("Привет. Hi. Сәлеметсіз бе. Cześć. Как тебе? Класно? "
-                         "\n\tМожет анекдоты или же новости Новосибирска или же может... ")
-    await message.answer("\n\tХочешь посмотреть фильмы или мультфильм, может зайти на ютуб-канал по прахождению разных игр")
-    await message.answer("\n\t/joke"
-                         "\n\t/news")
     kb = [
         [
+            types.KeyboardButton(text="/start"),
             types.KeyboardButton(text="/joke"),
-            types.KeyboardButton(text="/news"),
-            types.KeyboardButton(text="/smotre")
+            types.KeyboardButton(text="/news_NSK"),
+            types.KeyboardButton(text="/smotre"),
+            types.KeyboardButton(text="/watch_pubg")
         ],
     ]
     keyboard = types.ReplyKeyboardMarkup(
@@ -45,19 +32,18 @@ async def cmd_start(message: types.Message):
         resize_keyboard=True,
         input_field_placeholder="Выберите способ подачи"
         )
-    await message.answer("Привет. Hi. Сәлеметсіз бе. Cześć. Как тебе? Класно?\nМожет анекдоты или же новости Новосибирска или же может...\nХочешь посмотреть фильмы или мультфильм, может зайти на ютуб-канал по прахождению разных игр", reply_markup=keyboard)
+    await message.answer("Привет\nМожет тебе расказать анекдот или же новости Новосибирска или же может...\nХочешь посмотреть фильмы или мультфильм, можешь посмотреть прохождение игры pubg('metro royale или обычный') на ютуб-канале", reply_markup=keyboard)
 
 
 @dp.message(Command("joke"))
 async def cmd_smex(message: types.Message):
     await message.answer("Маленький сын спрашивает отца: "
-                         "— папа, а почему ты повесил конфеты на ёлку так высоко?"
-                         "— Для того чтобы ты не достал их до Нового Года!"
-                         "— Так мне что, теперь дождик жрать?!"
-                         "посвященный культуре и истории проклятий")
+                         "\n— папа, а почему ты повесил конфеты на ёлку так высоко?"
+                         "\n— Для того чтобы ты не достал их до Нового Года!"
+                         "\n— Так мне что, теперь дождик жрать?!")
 
 
-@dp.message(Command("news"))
+@dp.message(Command("news_NSK"))
 async def cmd_nsk(message: types.Message):
     await message.answer("Https://t.me/nsknewsinfo")
     
@@ -67,11 +53,21 @@ async def cmd_films(message: types.Message):
     await message.answer("https://www.afisha.ru/movie/")
     
     
+@dp.message(Command("watch_pubg"))
+async def cmd_pubg(message: types.Message):
+    await message.answer("https://www.youtube.com/watch?v=MykfN-dlbUM"
+                         "/nhttps://youtu.be/mXiLqo0Sj4o")
+        
     
-# Запуск процесса поллинга новых апдейтов.https://www.youtube.com/watch?v=y25k0SImB8Y
+    
+# Запуск процесса поллинга новых апдейтов
 async def main():
     await dp.start_polling(bot)
     
+    
+    
+if __name__ == "__main__":
+    asyncio.run(main())
     
     
 if __name__ == "__main__":
