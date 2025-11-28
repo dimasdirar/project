@@ -1,0 +1,60 @@
+import telebot
+import logging
+import random, string
+
+from pyexpat.errors import messages
+
+# Включаем логирование, чтобы не пропустить важные сообщения
+logging.basicConfig(level=logging.INFO)
+# Объект бота
+bot = telebot.TeleBot("7020085710:AAEI_4C5mrfH_sPsR7FvO2qAmTD3EqmGCRY")
+
+
+@bot.message_handler(commands=['start'])
+def main(message):
+     bot.reply_to(message, f"Hello,\nMaybe you want to watch the news from Novosibirsk or watch movies or cartoons, maybe you can watch YouTube?\n Need help? -- /help")
+
+
+@bot.message_handler(commands=['help'])
+def helps(message):
+     bot.reply_to(message, f"My commands: \n/start -- Information \n/help -- This is window\n/news -- News from Novosibirsk\n/afisha -- Movies or cartoons\n/YT or /yt -- YouTube\n/joke -- Joke")
+
+
+@bot.message_handler(commands=['news'])
+def news(message):
+     bot.reply_to(message, f"https://t.me/nsknewsinfo")
+
+
+@bot.message_handler(commands=['afisha'])
+def afisha(message):
+     bot.reply_to(message, f"https://www.Afisha.ru/movie")
+
+
+@bot.message_handler(commands=['YT'])
+def youtube(message):
+     bot.reply_to(message, f"https://www.youtube.com/")
+
+
+@bot.message_handler(commands=['yt'])
+def youtube1(message):
+     bot.reply_to(message, f"https://www.youtube.com/")
+
+
+@bot.message_handler(commands=['joke'])
+def youtube1(message):
+     bot.reply_to(message, f"Учитель спрашивает: \n— Твой пиджак из чего сшит? \n— Из сукна. \n— Верно, а из чего выделывают сукно? \n— Из шерсти. \n— Молодец! А шерсть кто дает? \n— Овцы. \n— Умница! Значит, какое животное дало тебе пиджак? \n— Папа. ")
+
+
+def answer_buttons(message):
+     if message_text():
+
+#@bot.message_handler(commands=['promo'])
+#def promo_code(message):
+#     letters = string.ascii_uppercase + string.digits
+#     code = ''.join(random.choice(letters) for _ in range(6))
+#     bot.reply_to(message, f"Ваш промокод на скидку 10%: {code}")
+
+# start bot
+bot.polling(non_stop=True)
+
+
