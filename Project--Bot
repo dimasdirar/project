@@ -1,0 +1,17 @@
+import random
+import telebot
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
+bot = telebot.TeleBot("8406583159:AAHoZpzA555Fz9i06rBIhB7onnKB72WzmME")
+
+@bot.message_handlers(command=['start'])
+def main(message):
+    bot.reple_to(message.chat.id, 'Привет ты от Димы?!')
+
+@bot.message_handlers(command=['help_me','help'])
+def main(message):
+    bot.reple_to(message.chat.id, 'Вот какие мне команды дали:'
+                                  '\n@start -- Начало работы бота'
+                                  '\n@help_me or @help')
