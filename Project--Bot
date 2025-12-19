@@ -1,17 +1,168 @@
-import random
 import telebot
+import random
+import time
 import logging
+import requests
+from collections import defaultdict
+
+try:
+    response = requests.get("https://api.telegram.org", timeout=10)
+    print("API Telegram доступен")
+except Exception as e:
+    print(f"Проблема с доступом: {e}")
 
 logging.basicConfig(level=logging.INFO)
 
-bot = telebot.TeleBot("8406583159:AAHoZpzA555Fz9i06rBIhB7onnKB72WzmME")
+# Замените на ваш токен от @BotFather
+TOKEN = '7020085710:AAEI_4C5mrfH_sPsR7FvO2qAmTD3EqmGCRY'
+bot = telebot.TeleBot(TOKEN)
 
-@bot.message_handlers(command=['start'])
-def main(message):
-    bot.reple_to(message.chat.id, 'Привет ты от Димы?!')
+# Структура игры
+games = {}  # Словарь: chat_id -> {'players': [], 'roles': [], 'phase': 'waiting', 'votes': {}, 'shpions': []}
 
-@bot.message_handlers(command=['help_me','help'])
-def main(message):
-    bot.reple_to(message.chat.id, 'Вот какие мне команды дали:'
-                                  '\n@start -- Начало работы бота'
-                                  '\n@help_me or @help')
+# Список возможных ролей (упрощённый)
+professions = ['Врач,', 'Инженер', 'Учитель,', 'Повар,', 'Программист,', 'Фермер,', 'Журналист,', 'Механик,', 'Психолог,', 'Строитель,', 'Художник,', 'Военный', 'Экономист,', 'Фармацевт,', 'Спортсмен']
+years = ['15-летним_стажем,', '10-летним_опытом,', '8-летним_стажем,', '12-летним_опытом,', '7-летним_стажем,', '20-летним_опытом,', '5-летним_стажем,', '14-летним_опытом,', '9-летним_стажем,', '18-летним_опытом,', '6-летним_стажем,', '11-летним_опытом,', '13-летним_стажем,', '4-летним_опытом,', '16-летним_стажем']
+people = ["Мужчина, Женщина"]
+rost = ['168см,', '182см,', '160см,', '178см,', '165см,', '172см,', '170см,', '185см,', '162см,', '168см,', '175см,', '180см,', '158см']
+p_y = ['45лет,', '32года,', '28лет,', '50лет,', '18лет,', '25лет,', '55лет,', '40лет,', '22года,', '35лет,', '60лет,', '29лет,', '47лет,', '10год,', '99года']
+healths = ['Болен', 'Инвалид', 'Астматик,', 'Диабетик,', 'Нет', 'рук,', 'Слабый_иммунитет,', 'Близорукость,', 'Сердечные_проблемы,', 'Ожирение,', 'Здоровье_хорошее,', 'Перелом_ноги,', 'Аллергия_на_собак,', 'Проблемы_с_суставами']
+hobbies = ['Чтение', 'Спорт', 'Музыка', 'Игры']
+baggages = ['Еда', 'Оружие', 'Медикаменты', 'Книги']
+
+
+# Функция для генерации ролей
+def generate_roles(num_players):
+    roles = []
+    shpions_count = max(1, num_players // 4)  # Шпионов: 1 на 4 игроков
+    shpions = random.sample(range(num_players), shpions_count)
+    for i in range(num_players):
+        is_shpion = i in shpions
+        role = {
+            'profession': random.choice(professions),
+            'health': random.choice(healths),
+            'hobby': random.choice(hobbies),
+            'baggage': random.choice(baggages),
+            'is_shpion': is_shpion
+        }
+        roles.append(role)
+    return roles, shpions
+
+
+# Команда /start_game — начать игру в группе
+@bot.message_handler(commands=['start_game'])
+def start_game(message):
+    chat_id = message.chat.id
+    if chat_id in games and games[chat_id]['phase'] != 'waiting':
+        bot.send_message(chat_id, "Игра уже идёт!")
+        return
+    games[chat_id] = {'players': [], 'roles': [], 'phase': 'joining', 'votes': {}, 'shpions': []}
+    bot.send_message(chat_id,
+                     "🎉 Игра 'Бункер' началась! Игроки, используйте /join, чтобы присоединиться. Когда все готовы, админ напишите /ready.")
+
+
+# Команда /join — присоединиться к игре
+@bot.message_handler(commands=['join'])
+def join_game(message):
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+    username = message.from_user.username or message.from_user.first_name
+    if chat_id not in games or games[chat_id]['phase'] != 'joining':
+        bot.send_message(chat_id, "Игра не активна или уже началась.")
+        return
+    if user_id in [p['id'] for p in games[chat_id]['players']]:
+        bot.send_message(chat_id, f"{username}, вы уже в игре!")
+        return
+    games[chat_id]['players'].append({'id': user_id, 'name': username})
+    bot.send_message(chat_id, f"{username} присоединился! Игроков: {len(games[chat_id]['players'])}")
+
+
+# Команда /ready — раздать роли и начать игру (только админ)
+@bot.message_handler(commands=['ready'])
+def ready_game(message):
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+    if chat_id not in games or games[chat_id]['phase'] != 'joining':
+        return
+    # Проверить, админ ли (упрощённо — первый игрок или кто-то)
+    if len(games[chat_id]['players']) < 0:
+        bot.send_message(chat_id, "Нужно минимум 3 игрока!")
+        return
+    games[chat_id]['roles'], games[chat_id]['shpions'] = generate_roles(len(games[chat_id]['players']))
+    games[chat_id]['phase'] = 'opening'
+
+    # Отправить роли каждому игроку приватно
+    for i, player in enumerate(games[chat_id]['players']):
+        role = games[chat_id]['roles'][i]
+        text = f"Ваша роль:\nПрофессия: {role['profession']}\nЗдоровье: {role['health']}\nХобби: {role['hobby']}\nБагаж: {role['baggage']}"
+        if role['is_shpion']:
+            shpion_names = [games[chat_id]['players'][j]['name'] for j in games[chat_id]['shpions'] if j != i]
+            text += f"\nВы ШПИОН! Другие шпионы: {', '.join(shpion_names) if shpion_names else 'Вы единственный'}"
+        try:
+            bot.send_message(player['id'], text)
+        except:
+            bot.send_message(chat_id, f"Не удалось отправить роль {player['name']} — добавьте бота в друзья!")
+
+    bot.send_message(chat_id, "Роли розданы! Фаза: открытие карт. Обсудите 2 минуты, затем /vote.")
+    time.sleep(120)  # Ждать 2 минуты (в реальности лучше использовать scheduler)
+
+
+# Команда /vote — голосование
+@bot.message_handler(commands=['vote'])
+def vote_phase(message):
+    chat_id = message.chat.id
+    if chat_id not in games or games[chat_id]['phase'] != 'opening':
+        return
+    games[chat_id]['phase'] = 'voting'
+    games[chat_id]['votes'] = {}
+    players = games[chat_id]['players']
+    player_list = "\n".join([f"{i + 1}. {p['name']}" for i, p in enumerate(players)])
+    bot.send_message(chat_id, f"Голосование! Выберите подозреваемого (ответьте номером):\n{player_list}")
+    # В реальности нужно обрабатывать ответы, но упрощённо — используем inline-кнопки или ручной ввод
+
+
+# Обработчик текстовых сообщений для голосования (упрощённо)
+@bot.message_handler(func=lambda message: True)
+def handle_vote(message):
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+    if chat_id not in games or games[chat_id]['phase'] != 'voting':
+        return
+    try:
+        vote = int(message.text) - 1
+        if vote < 0 or vote >= len(games[chat_id]['players']):
+            raise ValueError
+        games[chat_id]['votes'][user_id] = vote
+        bot.send_message(chat_id, f"Голос учтён от {message.from_user.first_name}.")
+        # Если все проголосовали, подвести итоги
+        if len(games[chat_id]['votes']) == len(games[chat_id]['players']):
+            # Подсчёт голосов
+            vote_counts = defaultdict(int)
+            for v in games[chat_id]['votes'].values():
+                vote_counts[v] += 1
+            max_votes = max(vote_counts.values())
+            candidates = [k for k, v in vote_counts.items() if v == max_votes]
+            exiled = random.choice(candidates) if len(candidates) > 1 else candidates[0]
+            exiled_player = games[chat_id]['players'][exiled]
+            is_shpion = games[chat_id]['roles'][exiled]['is_shpion']
+            bot.send_message(chat_id, f"Изгнан: {exiled_player['name']} — {'Шпион!' if is_shpion else 'Не шпион.'}")
+            # Удалить игрока
+            del games[chat_id]['players'][exiled]
+            del games[chat_id]['roles'][exiled]
+            # Проверить конец игры
+            shpions_left = sum(1 for r in games[chat_id]['roles'] if r['is_shpion'])
+            if shpions_left == 0:
+                bot.send_message(chat_id, "Победа выживших! Игра окончена.")
+                del games[chat_id]
+            elif shpions_left >= len(games[chat_id]['players']) - shpions_left:
+                bot.send_message(chat_id, "Победа шпионов! Игра окончена.")
+                del games[chat_id]
+            else:
+                games[chat_id]['phase'] = 'opening'
+                bot.send_message(chat_id, "Следующий раунд! /vote")
+    except ValueError:
+        pass
+
+
+# Запуск бота
+bot.polling(none_stop=True)
