@@ -1,3 +1,23 @@
+#https://znaemigraem.ru/blog/vyzhivanie-v-apokalipsise-vse-chto-nuzhno-znat-o-nastolnoy-igre-bunker-3-1/
+
+#Карты персонажей: Составляют уникального героя с набором характеристик. Сюда входят:
+
+#--Профессия (и СРОК РАБОТЫ) --
+#--Биологические характеристики (Пол, Возраст, Рост) --
+#--Здоровье --
+#--Хобби (увлечения) --
+#--Багаж (вещи, которые берешь с собой) --
+#--Фобии (страхи) --
+#--Факты о себе --
+
+#Общие карты:
+
+#--Карты Бункера (описывают само убежище и его ресурсы) --
+#--Карты Угроз --
+#--Карты Катастрофы --
+#--Бланки голосования: Для исключения игроков из игры. ----
+#Правила игры. --
+
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, Message
 from aiogram import Bot, Dispatcher, types, F, Router
 from aiogram.filters.command import Command
