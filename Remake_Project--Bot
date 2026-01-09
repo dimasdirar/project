@@ -1,0 +1,172 @@
+import telebot
+import random
+import time
+import logging
+import requests
+from collections import defaultdict
+
+try:
+    response = requests.get("https://api.telegram.org", timeout=10)
+    print("API Telegram доступен")
+except Exception as e:
+    print(f"Проблема с доступом: {e}")
+
+logging.basicConfig(level=logging.INFO)
+
+# Замените на ваш токен от @BotFather
+TOKEN = '7020085710:AAEI_4C5mrfH_sPsR7FvO2qAmTD3EqmGCRY'
+bot = telebot.TeleBot(TOKEN)
+
+# Структура игры
+games = {}  # Словарь: chat_id -> {'players': [], 'roles': [], 'phase': 'waiting', 'votes': {}, 'shpions': []}
+
+# Список возможных ролей (упрощённый)
+professions = ['Врач,', 'Инженер', 'Учитель,', 'Повар,', 'Программист,', 'Фермер,', 'Журналист,', 'Механик,', 'Психолог,', 'Строитель,', 'Художник,', 'Военный', 'Экономист,', 'Фармацевт,', 'Спортсмен']
+p_y = ['15-летним_стажем,', '10-летним_опытом,', '8-летним_стажем,', '12-летним_опытом,', '0-летним_стажем,', '20-летним_опытом,', '1-летним_стажем,', '14-летним_опытом,', '9-летним_стажем,', '18-летним_опытом,', '6-летним_стажем,', '11-летним_опытом,', '13-летним_стажем,', '4-летним_опытом,', '16-летним_стажем']
+people = ["Мужчина", "Женщина"]
+rost = ['168см,', '182см,', '160см,', '178см,', '165см,', '172см,', '170см,', '185см,', '162см,', '168см,', '175см,', '180см,', '158см']
+years = ['45лет,', '32года,', '28лет,', '50лет,', '18лет,', '25лет,', '55лет,', '40лет,', '22года,', '35лет,', '60лет,', '29лет,', '47лет,', '10лет,', '99года']
+healths = ['Болен', 'Инвалид', 'Астматик,', 'Диабетик,', 'Нет_руки,', 'Слабый_иммунитет,', 'Близорукость,', 'Сердечные_проблемы,', 'Ожирение,', 'Здоровье_хорошее,', 'Перелом_ноги,', 'Аллергия_на_собак,', 'Проблемы_с_суставами']
+hobbies = ['Чтение', 'Спорт', 'Игры', 'Ориентирование_в_лесу,', 'Переработка_пластика,', 'Выращивание_грибов,Ремонт_мелкой_электроники,', 'Программирование,', '3D‑моделирование,', 'Игра_на_музыкальных_инструментах,', 'Рисование,', 'Сочинение_стихов,', 'Плетение_из_ниток,', 'Театральные_импровизации,', 'Рассказывание_историй,', 'Коллекционирование_насекомых,', 'Составление_гербариев,', 'Чтение_по_звёздам']
+baggages = ['Еда', 'Оружие', 'Медикаменты', 'Ремонтный_набор_электрика', 'Набор_фильтров_для_очистки_воды', 'Компас', 'Портативный_3D‑принтер', 'Массажное_масло', 'Аптечка_с_жгутами_и_антисептиками', 'Годовой_запас_зубной_пасты', 'Часы_с_секундомером', 'Губная_гармошка_и_ноты,', 'Личный_дневник,Блокнот_с_техниками_переговоров', 'Учебники_по_математике(сборник_АЛГЕБРЫ_ГЕОМЕТРИИ_ВиС)', 'Гирлянды_и_свечи,', 'Сборник_мифов_и_легенд,', 'Дневник_метеонаблюдений,', 'Пресс_для_сушки_растений']
+
+
+
+# Функция для генерации ролей
+def generate_roles(num_players):
+    roles = []
+    cct_count = max(1, num_players // 4)  # Бандит: 1 на 4 игроков
+    cct = random.sample(range(num_players), cct_count)
+    for i in range(num_players):
+        is_cct = i in cct
+        role = {
+            'profession': random.choice(professions),
+            'years': random.choice(years),
+            'people': random.choice(people),
+            'rost': random.choice(rost),
+            'p_y': random.choice(p_y),
+            'health': random.choice(healths),
+            'hobby': random.choice(hobbies),
+            'baggage': random.choice(baggages),
+            'is_cct': is_cct
+        }
+        roles.append(role)
+    return roles, cct
+
+
+# Команда /start_game — начать игру в группе
+@bot.message_handler(commands=['start_game'])
+def start_game(message):
+    chat_id = message.chat.id
+    if chat_id in games and games[chat_id]['phase'] != 'waiting':
+        bot.send_message(chat_id, "Игра уже идёт!")
+        return
+    games[chat_id] = {'players': [], 'roles': [], 'phase': 'joining', 'votes': {}, 'cct': []}
+    bot.send_message(chat_id,
+                     "🎉 Игра 'Бункер' началась! Игроки, используйте /join, чтобы присоединиться. Когда все готовы, админ напишите /ready.")
+
+
+# Команда /join — присоединиться к игре
+@bot.message_handler(commands=['join'])
+def join_game(message):
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+    username = message.from_user.username or message.from_user.first_name
+    if chat_id not in games or games[chat_id]['phase'] != 'joining':
+        bot.send_message(chat_id, "Игра не активна или уже началась.")
+        return
+    if user_id in [p['id'] for p in games[chat_id]['players']]:
+        bot.send_message(chat_id, f"{username}, вы уже в игре!")
+        return
+    games[chat_id]['players'].append({'id': user_id, 'name': username})
+    bot.send_message(chat_id, f"{username} присоединился! Игроков: {len(games[chat_id]['players'])}")
+
+
+# Команда /ready — раздать роли и начать игру (только админ)
+@bot.message_handler(commands=['ready'])
+def ready_game(message):
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+    if chat_id not in games or games[chat_id]['phase'] != 'joining':
+        return
+    # Проверить, админ ли (упрощённо — первый игрок или кто-то)
+    if len(games[chat_id]['players']) < 0:
+        bot.send_message(chat_id, "Нужно минимум 3 игрока!")
+        return
+    games[chat_id]['roles'], games[chat_id]['cct'] = generate_roles(len(games[chat_id]['players']))
+    games[chat_id]['phase'] = 'opening'
+
+    # Отправить роли каждому игроку приватно
+    for i, player in enumerate(games[chat_id]['players']):
+        role = games[chat_id]['roles'][i]
+        text = f"Ваша роль:\nПрофессия: {role['profession']}\nВозраст: {role['years']}\nПол: {role['people']}\nРост: {role['rost']}\nСтаж_Работы: {role['p_y']}\nЗдоровье: {role['health']}\nХобби: {role['hobby']}\nБагаж: {role['baggage']}"
+        if role['is_cct']:
+            cct_names = [games[chat_id]['players'][j]['name'] for j in games[chat_id]['cct'] if j != i]
+            text += f"\nВы Бандит! Другие бандиты: {', '.join(cct_names) if cct_names else 'Вы единственный'}"
+        try:
+            bot.send_message(player['id'], text)
+        except:
+            bot.send_message(chat_id, f"Не удалось отправить роль {player['name']} — добавьте бота в друзья!")
+
+    bot.send_message(chat_id, "Роли розданы! Фаза: открытие карт. Обсудите 5 минуты, затем /vote.")
+    time.sleep(300)  # Ждать 5 минуты (в реальности лучше использовать scheduler)
+
+
+# Команда /vote — голосование
+@bot.message_handler(commands=['vote'])
+def vote_phase(message):
+    chat_id = message.chat.id
+    if chat_id not in games or games[chat_id]['phase'] != 'opening':
+        return
+    games[chat_id]['phase'] = 'voting'
+    games[chat_id]['votes'] = {}
+    players = games[chat_id]['players']
+    player_list = "\n".join([f"{i + 1}. {p['name']}" for i, p in enumerate(players)])
+    bot.send_message(chat_id, f"Голосование! Выберите подозреваемого (ответьте номером):\n{player_list}")
+
+
+# Обработчик текстовых сообщений для голосования
+@bot.message_handler(func=lambda message: True)
+def handle_vote(message):
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+    if chat_id not in games or games[chat_id]['phase'] != 'voting':
+        return
+    try:
+        vote = int(message.text) - 1
+        if vote < 0 or vote >= len(games[chat_id]['players']):
+            raise ValueError
+        games[chat_id]['votes'][user_id] = vote
+        bot.send_message(chat_id, f"Голос учтён от {message.from_user.first_name}.")
+        # Если все проголосовали, подвести итоги
+        if len(games[chat_id]['votes']) == len(games[chat_id]['players']):
+            # Подсчёт голосов
+            vote_counts = defaultdict(int)
+            for v in games[chat_id]['votes'].values():
+                vote_counts[v] += 1
+            max_votes = max(vote_counts.values())
+            candidates = [k for k, v in vote_counts.items() if v == max_votes]
+            exiled = random.choice(candidates) if len(candidates) > 1 else candidates[0]
+            exiled_player = games[chat_id]['players'][exiled]
+            is_cct = games[chat_id]['roles'][exiled]['is_cct']
+            bot.send_message(chat_id, f"Изгнан: {exiled_player['name']} — {'Бандит!' if is_cct else 'Не Бандит.'}")
+            # Удалить игрока
+            del games[chat_id]['players'][exiled]
+            del games[chat_id]['roles'][exiled]
+            # Проверить конец игры
+            cct_left = sum(1 for r in games[chat_id]['roles'] if r['is_cct'])
+            if cct_left == 0:
+                bot.send_message(chat_id, "Победа выживших! Игра окончена.")
+                del games[chat_id]
+            elif cct_left >= len(games[chat_id]['players']) - cct_left:
+                bot.send_message(chat_id, "Победа бандитов! Игра окончена.")
+                del games[chat_id]
+            else:
+                games[chat_id]['phase'] = 'opening'
+                bot.send_message(chat_id, "Следующий раунд! /vote")
+    except ValueError:
+        pass
+
+
+# Запуск бота
+bot.polling(none_stop=True)
